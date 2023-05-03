@@ -1,0 +1,211 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[208]:
+
+
+import numpy
+import scipy.special
+import matplotlib.pyplot
+get_ipython().run_line_magic('matplotlib', 'inline')
+
+
+# In[209]:
+
+
+# nerual network class defination
+class neuralNetwork:
+    # initialise the neural network
+    def __init__(self, inputnodes, hiddennodes, outputnodes, learningrate):
+        self.inodes = inputnodes
+        self.hnodes = hiddennodes
+        self.onodes = outputnodes
+        self.lr=learningrate
+        # link weight matrices, wij and wjk
+        # [w11, w21, w31]
+        # [w12, w22, w32]
+        self.wih = numpy.random.normal(0.0, pow(self.hnodes, -0.5),(self.hnodes, self.inodes))
+        self.who = numpy.random.normal(0.0, pow(self.onodes, -0.5),(self.onodes, self.hnodes))
+        # activation function is the sigmoid function
+        self.activation_function = lambda x: scipy.special.expit(x)
+        pass
+    
+    # train the nerual network
+    def train(self, inputs_list, targets_list):
+        # convert inputs list to 2d array
+        inputs = numpy.array(inputs_list, ndmin=2).T
+        targets = numpy.array(targets_list, ndmin=2).T
+        
+        # calculate signals into hidden layer and corresponding outputs via sigmoid function
+        hidden_inputs = numpy.dot(self.wih, inputs)
+        hidden_outputs = self.activation_function(hidden_inputs)
+        
+        # calculate signals into final output layer and corresponding outputs via sigmoid function
+        final_inputs = numpy.dot(self.who, hidden_outputs)
+        final_outputs = self.activation_function(final_inputs)
+        
+        # output layer error is the (targets - actual)
+        output_errors = targets - final_outputs
+        
+        # hidden layer is the output_layer errors, split by weights, recombined at hidden nodes
+        hidden_errors = numpy.dot(self.who.T, output_errors)
+        
+        # update the weights for the links between the hidden and output layers
+        self.who += self.lr*numpy.dot(output_errors*final_outputs*(1.0-final_outputs), numpy.transpose(hidden_outputs))
+        
+        # update the weights for the links between the input and hidden layers
+        self.wih += self.lr*numpy.dot(hidden_errors*hidden_outputs*(1.0-hidden_outputs), numpy.transpose(inputs))
+        pass
+    
+    # query the neural network
+    def query(self, inputs_list):
+        # convert inputs list to 2d array
+        inputs = numpy.array(inputs_list, ndmin=2).T
+        
+        # calculate signals into hidden layer and corresponding outputs via sigmoid function
+        hidden_inputs = numpy.dot(self.wih, inputs)
+        hidden_outputs = self.activation_function(hidden_inputs)
+        
+        # calculate signals into final output layer and corresponding outputs via sigmoid function
+        final_inputs = numpy.dot(self.who, hidden_outputs)
+        final_outputs = self.activation_function(final_inputs)
+        
+        return final_outputs
+    
+        pass
+    
+        
+
+
+# In[223]:
+
+
+# number of input, hidden and output nodes, learning rate
+input_nodes=784
+hidden_nodes=100
+output_nodes=10
+learning_rate=0.1
+
+# create instance of nerual network
+n=neuralNetwork(input_nodes, hidden_nodes, output_nodes, learning_rate)
+
+
+# In[224]:
+
+
+# loading the mnist training data csv file into a list
+training_data_file = open("C:\\Users\\Administrator\\Desktop\\mnist_dataset\\mnist_train.csv","r")
+training_data_list = training_data_file.readlines()
+training_data_file.close()
+
+
+# In[225]:
+
+
+len(training_data_list)
+
+
+# In[236]:
+
+
+# train the neural network
+# go through all records in the training data set
+epochs = 2
+
+for e in range(epochs):
+    for record in training_data_list:
+        all_values = record.split(',')
+        inputs = (numpy.asfarray(all_values[1:])/255.0*0.99)+0.01
+        # creat the target output values
+        targets = numpy.zeros(output_nodes)+0.01
+        targets[int(all_values[0])] = 0.99
+        n.train(inputs, targets)
+        pass
+    pass
+
+
+# In[237]:
+
+
+# load the mnist test data csv file into a list
+test_data_file = open("C:\\Users\\Administrator\\Desktop\\mnist_dataset\\mnist_test.csv",'r')
+test_data_list = test_data_file.readlines()
+test_data_file.close()
+
+
+# In[238]:
+
+
+print(len(test_data_list))
+
+
+# In[239]:
+
+
+# get the first test record
+all_values = test_data_list[0].split(',')
+all_values[0]
+
+
+# In[240]:
+
+
+image_array = numpy.asfarray(all_values[1:]).reshape((28,28))
+matplotlib.pyplot.imshow(image_array, cmap='Greys', interpolation='None')
+
+
+# In[241]:
+
+
+n.query(numpy.asfarray(all_values[1:])/255*0.99+0.1)
+
+
+# In[242]:
+
+
+# test the neural network
+# scorecard for how well the network performs,initially empty scorecard = []
+# go through all the records in the test data set
+
+scorecard = []
+
+for record in test_data_list:
+    all_values = record.split(',')
+    correct_label = int(all_values[0])
+    print(correct_label, "correct label")
+    inputs = numpy.asfarray(all_values[1:])/255*0.9+0.01
+    outputs = n.query(inputs)
+    label = numpy.argmax(outputs)
+    print(label,"network's answer")
+    if label == correct_label:
+        scorecard.append(1)
+    else:
+        scorecard.append(0)
+        pass
+    pass        
+
+
+# In[243]:
+
+
+scorecard
+
+
+# In[244]:
+
+
+type(scorecard)
+
+
+# In[247]:
+
+
+scorecard_array = numpy.asarray(scorecard)
+print("accuracy rate = ", scorecard_array.sum()/scorecard_array.size*100,"%")
+
+
+# In[ ]:
+
+
+
+
